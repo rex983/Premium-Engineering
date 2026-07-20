@@ -19,7 +19,7 @@ export async function GET(
   const versionId = searchParams.get("versionId");
 
   let q = supabase
-    .from("psb_pricing_data")
+    .from("psbe_pricing_data")
     .select("id, region_id, version, is_current, matrices, created_at")
     .eq("region_id", regionId);
   if (versionId) {

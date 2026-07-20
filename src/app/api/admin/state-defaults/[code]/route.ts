@@ -33,7 +33,7 @@ export async function PATCH(
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("psb_state_defaults")
+    .from("psbe_state_defaults")
     .update(update)
     .eq("state_code", code)
     .select()
@@ -44,7 +44,7 @@ export async function PATCH(
   await logAudit({
     actorEmail: guard.email,
     action: "state_default.update",
-    entity: "psb_state_defaults",
+    entity: "psbe_state_defaults",
     entityId: code,
     diff: update,
   });

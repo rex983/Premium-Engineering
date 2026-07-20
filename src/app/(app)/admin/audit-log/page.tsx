@@ -21,7 +21,7 @@ interface AuditEntry {
   created_at: string;
 }
 
-const ENTITY_FILTERS = ["all", "psb_regions", "psb_state_defaults", "psb_pricing_data", "psb_config"];
+const ENTITY_FILTERS = ["all", "psbe_regions", "psbe_state_defaults", "psbe_pricing_data"];
 
 export default function AuditLogPage() {
   const [entries, setEntries] = useState<AuditEntry[]>([]);

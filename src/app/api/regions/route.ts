@@ -9,7 +9,7 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("psb_regions")
+    .from("psbe_regions")
     .select("id, name, slug, states, is_active")
     .eq("is_active", true)
     .order("name");

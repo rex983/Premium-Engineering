@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   // Fetch target region
   const { data: region, error: regError } = await supabase
-    .from("psb_regions")
+    .from("psbe_regions")
     .select("id, name, slug, states, is_active")
     .eq("id", regionId)
     .single();
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   // Insert upload record (status=processing)
   const { data: upload, error: uploadErr } = await supabase
-    .from("psb_uploads")
+    .from("psbe_uploads")
     .insert({
       region_id: regionId,
       uploaded_by: validUuid,
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     parseResult = parsePsbWorkbook(buffer, file.name);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    await supabase.from("psb_uploads").update({
+    await supabase.from("psbe_uploads").update({
       status: "failed", error_message: `Parse failed: ${msg}`,
     }).eq("id", upload.id);
     return NextResponse.json({ error: `Parse failed: ${msg}` }, { status: 400 });
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   if (!parseResult.validation.ok) {
     const errs = parseResult.validation.errors.join("; ");
-    await supabase.from("psb_uploads").update({
+    await supabase.from("psbe_uploads").update({
       status: "failed", error_message: `Validation failed: ${errs}`,
     }).eq("id", upload.id);
     return NextResponse.json({
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   const overlap = fileStates.filter((s) => region.states.includes(s));
   if (fileStates.length > 0 && overlap.length === 0) {
     const msg = `Workbook states [${fileStates.join(", ")}] don't match region "${region.name}" [${region.states.join(", ")}]`;
-    await supabase.from("psb_uploads").update({
+    await supabase.from("psbe_uploads").update({
       status: "failed", error_message: msg,
     }).eq("id", upload.id);
     return NextResponse.json({ error: msg }, { status: 400 });
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
   // Determine next version number for this region
   const { data: maxVersion } = await supabase
-    .from("psb_pricing_data")
+    .from("psbe_pricing_data")
     .select("version")
     .eq("region_id", regionId)
     .order("version", { ascending: false })
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
   // Insert new pricing_data row (is_current=false initially)
   const { data: newPricing, error: insertErr } = await supabase
-    .from("psb_pricing_data")
+    .from("psbe_pricing_data")
     .insert({
       region_id: regionId,
       version: nextVersion,
@@ -117,31 +117,31 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
   if (insertErr || !newPricing) {
-    await supabase.from("psb_uploads").update({
+    await supabase.from("psbe_uploads").update({
       status: "failed", error_message: `DB insert failed: ${insertErr?.message ?? "unknown"}`,
     }).eq("id", upload.id);
     return NextResponse.json({ error: "Failed to save pricing data" }, { status: 500 });
   }
 
   // Activate: deactivate previous current, then set new one to current
-  await supabase.from("psb_pricing_data")
+  await supabase.from("psbe_pricing_data")
     .update({ is_current: false })
     .eq("region_id", regionId)
     .eq("is_current", true);
-  await supabase.from("psb_pricing_data")
+  await supabase.from("psbe_pricing_data")
     .update({ is_current: true })
     .eq("id", newPricing.id);
 
   // Update upload to success
   const sheetCount = Object.keys(parseResult.matrices).length;
-  await supabase.from("psb_uploads").update({
+  await supabase.from("psbe_uploads").update({
     status: "success", sheet_count: sheetCount,
   }).eq("id", upload.id);
 
   await logAudit({
     actorEmail: guard.email,
     action: "pricing.upload",
-    entity: "psb_pricing_data",
+    entity: "psbe_pricing_data",
     entityId: newPricing.id,
     diff: {
       regionId,

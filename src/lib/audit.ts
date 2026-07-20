@@ -13,7 +13,7 @@ interface AuditEntry {
 export async function logAudit(entry: AuditEntry) {
   try {
     const supabase = createAdminClient();
-    await supabase.from("psb_audit_log").insert({
+    await supabase.from("psbe_audit_log").insert({
       actor_id: entry.actorId ?? null,
       actor_email: entry.actorEmail ?? null,
       action: entry.action,

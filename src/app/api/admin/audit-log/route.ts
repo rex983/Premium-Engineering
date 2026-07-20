@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const entity = req.nextUrl.searchParams.get("entity");
 
   let q = supabase
-    .from("psb_audit_log")
+    .from("psbe_audit_log")
     .select("id, actor_id, actor_email, entity, entity_id, action, diff, created_at")
     .order("created_at", { ascending: false })
     .limit(200);

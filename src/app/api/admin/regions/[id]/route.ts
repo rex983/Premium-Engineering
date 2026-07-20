@@ -38,7 +38,7 @@ export async function PATCH(
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("psb_regions")
+    .from("psbe_regions")
     .update(update)
     .eq("id", id)
     .select()
@@ -49,7 +49,7 @@ export async function PATCH(
   await logAudit({
     actorEmail: guard.email,
     action: "region.update",
-    entity: "psb_regions",
+    entity: "psbe_regions",
     entityId: id,
     diff: update,
   });
@@ -67,13 +67,13 @@ export async function DELETE(
   const { id } = await params;
   const supabase = createAdminClient();
 
-  const { error } = await supabase.from("psb_regions").delete().eq("id", id);
+  const { error } = await supabase.from("psbe_regions").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   await logAudit({
     actorEmail: guard.email,
     action: "region.delete",
-    entity: "psb_regions",
+    entity: "psbe_regions",
     entityId: id,
   });
 

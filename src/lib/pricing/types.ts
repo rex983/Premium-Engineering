@@ -1,126 +1,35 @@
 /**
- * BuildingConfig — full enumeration of inputs to the PSB pricing engine.
- * Mirrors the PSB-Quote Sheet user-input cells (rows 8–55).
+ * BuildingConfig — inputs to the engineering-only pricing engine.
+ * Only fields consumed by snow-engineering.ts are kept.
  */
 export interface BuildingConfig {
   // Geometry
-  width: number;          // L17
-  length: number;         // P17
-  height: number;         // T17 (leg height)
+  width: number;
+  length: number;
+  height: number;
 
-  // Structure
-  gauge: "12g" | "14g";   // G18 (case-insensitive normalize)
-  roofStyle: "A-Frame Vertical" | "A-Frame Horizontal"; // E16
+  // Structure (roofStyle drives AFV vs STD in truss-spacing lookup)
+  roofStyle: "A-Frame Vertical" | "A-Frame Horizontal";
 
-  // Walls
-  sides: string;          // G27 — "Fully Enclosed" | "Partial Sides" | "Open" | etc.
-  ends: string;           // G28 — "Gable" | "Enclosed Ends" | "Extended Gable"
-  sidesPanel: "Vertical" | "Horizontal"; // N27
-  endsPanel: "Vertical" | "Horizontal";  // N28
-  sidesQty: 0 | 1 | 2;    // L27
-  endsQty: 0 | 1 | 2;     // L28
-
-  // Roll-up doors (up to 3 lines)
-  rollUpDoors: Array<{
-    size: string;         // I33: "8x8", "10x10", etc.
-    qty: number;          // H33
-    position: "SIDE" | "END"; // K33
-    headerSeal?: string;  // M33
-  }>;
-
-  // Walk-in doors (up to 2 lines)
-  walkInDoors: Array<{
-    size: string;         // G29
-    qty: number;
-  }>;
-
-  // Windows (up to 2 lines)
-  windows: Array<{
-    size: string;         // G31
-    qty: number;
-  }>;
-
-  // Anchors
-  anchorType: string;     // E36 — "Concrete", "Earth Anchors (MHA- Helix)", etc.
-  windWarranty: string;   // L36 — "105 MPH Wind Warranty" or "Anchors Only"
-  anchorQty?: number;     // K36 — user-entered qty (only used when wind warranty = "Anchors Only")
-
-  // Insulation
-  insulation: string;     // E37
-  insulationType: string; // M37 — "Fully Insulated-Vertical", "Roof Only", etc.
-
-  // Roof pitch & overhang
-  pitch: 0 | 1 | 2 | 3 | 4 | 5 | 6;   // I38 — 0–3 free, 4/5/6 price from Pricing - Base!A36:J39
-  pitchUnit: string;      // K38 = "12P"
-  overhang: string;       // G39
-
-  // Trim, gutter, premium
-  baseTrim?: string;      // G42
-  foamClosure?: string;   // I43 — "Foam Closure Package" or ""
-  gutterColor?: string;   // G44 (display-only — doesn't affect price)
-  gutterSide?: string;    // L44 ("One Side" / "Both Sides")
-  colorScrews?: string;   // G45
-  extraSheetMetal?: string;        // G46 sheet metal label
-  extraSheetMetalQty?: number;     // K46
-  jtrim?: string;                  // P46 j-trim label
-  jtrimQty?: number;               // O46
-  frameOuts?: { width: number; height: number; qty: number; position: "SIDE" | "END" }; // K47/N47/Q47 + position
-  upgrade26ga?: string;            // G48
-  upgrade26gaCoverage?: string;    // L48 — "Roof Only" | "Fully Enclosed"
-  premiumColor?: string;           // G49
-  premiumColorCoverage?: string;   // L49 — "Roof Only" | "Fully Enclosed"
-
-  // Wainscot
-  wainscotEnd?: string;   // G40
-  wainscotSide?: string;  // G41
-  wainscotEndQty?: number;
-  wainscotSideQty?: number;
-
-  // Extras (up to 2 lines + interior walls)
-  extras?: Array<{ label: string; qty: number }>; // G50/G51 + Q50/O51
-  interiorWalls?: { label: string; qty: number }; // G52
-
-  // Labor fees (up to 2 lines — G53 / G54)
-  laborFees?: Array<string>;
+  // Walls — engineering needs to know which sides/ends are enclosed vertical
+  // panels, because girts/verticals only apply when ends=Enclosed and sides=Vertical.
+  sides: string;
+  ends: string;
+  sidesPanel: "Vertical" | "Horizontal";
+  endsPanel: "Vertical" | "Horizontal";
+  sidesQty: 0 | 1 | 2;
+  endsQty: 0 | 1 | 2;
 
   // Engineering inputs
-  windMph: number;        // J55 — typically 105
-  snowLoad: string;       // N55 — "60 Ground Load", etc.
+  windMph: number;
+  snowLoad: string;
 
-  // Customer / location (drives region)
-  state: string;          // Z10 — drives state-defaults (snow load + wind defaults)
-
-  // Promo + tax (configurable). Deposit % is auto-tiered from total — see totals.ts.
-  promoTier?: string;     // W24 — "No Promotional Sale" if absent
-  taxPct?: number;        // AA28 — default 0.07
-}
-
-export interface LineItem {
-  key: string;
-  label: string;
-  price: number;
-  // Optional sub-line items (engineering breakdown)
-  children?: LineItem[];
-}
-
-export interface EngineTotals {
-  totalTaxableSale: number;  // AC26 — sum of all line items + R55 + AC24 (promo)
-  promoDiscount: number;     // AC24 — negative if promo applied
-  taxAmount: number;         // AC28 = AC26 × taxPct
-  subtotal: number;          // AC30 = AC26 + AC28
-  equipmentLabor: number;    // AC36 — Pricing - Labor-EQ!N29
-  additionalLabor: number;   // AC38 = R53 + R54
-  total: number;             // AC40 = AC30 + AC36 + AC38 + AC34 + AC32 + AC39
-  depositPct: number;        // auto-tiered: <30k = 0.20, >=30k = 0.22
-  depositAmount: number;     // AC42 = AC26 × depositPct
-  balanceDue: number;        // AC46 = AC40 - (AC42 + AC44)
-  // Display-only (NOT in balance)
-  plansCost: number;         // AC50
-  calcsCost: number;         // AC52
+  // Location (drives state constants: truss price/ft, leg mult, channel & tubing rates)
+  state: string;
 }
 
 export interface SnowEngineeringBreakdown {
-  trussSpacing: string;       // e.g., "36\""
+  trussSpacing: string;
   originalTrusses: number;
   extraTrussesNeeded: number;
   trussPrice: number;
@@ -140,10 +49,7 @@ export interface SnowEngineeringBreakdown {
 }
 
 export interface EngineOutput {
-  lineItems: LineItem[];
-  totals: EngineTotals;
   engineeringBreakdown: SnowEngineeringBreakdown;
-  // For debugging / display
   inputs: BuildingConfig;
   region: "north" | "south";
 }

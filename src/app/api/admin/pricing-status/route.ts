@@ -20,8 +20,8 @@ export async function GET() {
   const supabase = createAdminClient();
 
   const [{ data: regions }, { data: pricing }] = await Promise.all([
-    supabase.from("psb_regions").select("id, name").eq("is_active", true).order("name"),
-    supabase.from("psb_pricing_data")
+    supabase.from("psbe_regions").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("psbe_pricing_data")
       .select("region_id, version, matrices, created_at")
       .eq("is_current", true),
   ]);

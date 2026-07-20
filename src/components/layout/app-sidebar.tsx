@@ -5,12 +5,9 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Calculator,
-  FileText,
   Upload,
   Map,
   History,
-  SlidersHorizontal,
-  Users,
   Snowflake,
 } from "lucide-react";
 import {
@@ -30,15 +27,12 @@ import { Logo } from "@/components/layout/logo";
 
 const navItems = [
   { title: "Calculator", href: "/calculator", icon: Calculator },
-  { title: "Quotes", href: "/quotes", icon: FileText },
-  { title: "Customers", href: "/customers", icon: Users },
 ];
 
 const adminItems = [
   { title: "Upload Pricing", href: "/admin/upload", icon: Upload },
   { title: "Regions", href: "/admin/regions", icon: Map },
   { title: "State → Region", href: "/admin/states", icon: Snowflake },
-  { title: "Config", href: "/admin/config", icon: SlidersHorizontal },
   { title: "Audit Log", href: "/admin/audit-log", icon: History },
 ];
 

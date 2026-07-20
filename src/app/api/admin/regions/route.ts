@@ -13,10 +13,10 @@ export async function GET() {
 
   const [{ data: regions, error: regError }, { data: pricingStatus }, { data: uploads }] =
     await Promise.all([
-      supabase.from("psb_regions").select("*").order("name"),
-      supabase.from("psb_pricing_data")
+      supabase.from("psbe_regions").select("*").order("name"),
+      supabase.from("psbe_pricing_data")
         .select("region_id, version, created_at").eq("is_current", true),
-      supabase.from("psb_uploads")
+      supabase.from("psbe_uploads")
         .select("region_id, filename, status, created_at")
         .eq("status", "success").order("created_at", { ascending: false }),
     ]);
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
-    .from("psb_regions")
+    .from("psbe_regions")
     .insert({ name: name.trim(), slug, states, is_active: true })
     .select()
     .single();
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   await logAudit({
     actorEmail: guard.email,
     action: "region.create",
-    entity: "psb_regions",
+    entity: "psbe_regions",
     entityId: data.id,
     diff: { name: data.name, states: data.states },
   });
