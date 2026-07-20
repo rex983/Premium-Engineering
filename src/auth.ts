@@ -59,21 +59,23 @@ providers.push(
       password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
-      const email = typeof credentials?.email === "string" ? credentials.email : "";
+      const email = typeof credentials?.email === "string" ? credentials.email.toLowerCase() : "";
       const password = typeof credentials?.password === "string" ? credentials.password : "";
       if (!email || !password) return null;
 
       const adminPw = (process.env.ADMIN_PASSWORD || "").trim();
+      // Any @bigbuildingsdirect.com email may log in with the shared internal
+      // ADMIN_PASSWORD. This app is internal-only; per-user auth flows through
+      // Google or Launcher SSO. Role is resolved from the `profiles` table in
+      // the jwt callback (falls back to viewer if the email isn't a profile).
       if (
-        email === "rex@bigbuildingsdirect.com" &&
+        email.endsWith("@bigbuildingsdirect.com") &&
         adminPw.length >= 8 &&
         constantTimeEqual(password, adminPw)
       ) {
-        return { id: "admin-001", email, name: "Rex", image: null };
+        const nameFromEmail = email.split("@")[0].replace(/\./g, " ");
+        return { id: email, email, name: nameFromEmail, image: null };
       }
-      // Everyone else must authenticate via Google or the launcher SSO token —
-      // we don't accept profile-lookup-by-email-only here because there is no
-      // password column on `profiles` to verify against.
       return null;
     },
   })
@@ -104,7 +106,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async jwt({ token, user }) {
       if (user?.email) {
-        if (user.email === "rex@bigbuildingsdirect.com" && user.id === "admin-001") {
+        if (user.email === "rex@bigbuildingsdirect.com") {
           token.role = "admin" as UserRole;
           token.profileId = "admin-001";
           return token;
