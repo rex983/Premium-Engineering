@@ -77,8 +77,9 @@ export function calcSnowEngineering(
     : 0;
   const extraVerticalsBase = Math.max(0, totalVerticalsNeeded - originalVerticals);
   const extraVerticalsNeeded = extraVerticalsBase * endsEnclosed;
-  const peakHeight = config.height + extraVerticalsBase;
-  const verticalUnitPrice = peakHeight * tubingPricePerFt;
+  // Height multiplier — spreadsheet's ×2/×2.5/×3 step function on leg height.
+  // Per engineering-spreadsheet-analysis.md §B / memory: 13-15 →2, 16-18 →2.5, 19-20 →3, else 1.
+  const verticalUnitPrice = config.height * verticalHeightMultiplier(config.height) * tubingPricePerFt;
   const verticalLineCost = verticalUnitPrice * extraVerticalsNeeded;
 
   return {
@@ -132,6 +133,13 @@ function computeC102(config: BuildingConfig, snowCode: string): 0 | 1 {
   const isHighWind = config.windMph > 130;
   const isElevatedSnow = snowCode !== "30GL";
   return isHighWind || isElevatedSnow ? 1 : 0;
+}
+
+function verticalHeightMultiplier(height: number): number {
+  if (height >= 19 && height <= 20) return 3.0;
+  if (height >= 16 && height <= 18) return 2.5;
+  if (height >= 13 && height <= 15) return 2.0;
+  return 1.0;
 }
 
 // ============================================================================
