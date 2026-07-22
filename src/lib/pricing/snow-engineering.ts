@@ -76,10 +76,13 @@ export function calcSnowEngineering(
     ? Math.ceil((config.width * 12) / verticalSpacing) + 1
     : 0;
   const extraVerticalsBase = Math.max(0, totalVerticalsNeeded - originalVerticals);
-  const extraVerticalsNeeded = extraVerticalsBase * endsEnclosed;
-  // Height multiplier — spreadsheet's ×2/×2.5/×3 step function on leg height.
-  // Per engineering-spreadsheet-analysis.md §B / memory: 13-15 →2, 16-18 →2.5, 19-20 →3, else 1.
-  const verticalUnitPrice = config.height * verticalHeightMultiplier(config.height) * tubingPricePerFt;
+  // Spreadsheet's H32 = H31 × D35 where D35 folds in the ends-qty multiplier.
+  // Extras are per-end; multiply by endsQty to get the total across both ends.
+  const extraVerticalsNeeded = extraVerticalsBase * endsEnclosed * config.endsQty;
+  // Per-vertical length = wall height + roof peak-height above walls.
+  // Snow - Math Calculations!U15 = ROUNDUP(width * 3 / 24, 0) — assumes 3/12 pitch.
+  const peakAdd = Math.ceil((config.width * 3) / 24);
+  const verticalUnitPrice = (config.height + peakAdd) * tubingPricePerFt;
   const verticalLineCost = verticalUnitPrice * extraVerticalsNeeded;
 
   return {
@@ -133,13 +136,6 @@ function computeC102(config: BuildingConfig, snowCode: string): 0 | 1 {
   const isHighWind = config.windMph > 130;
   const isElevatedSnow = snowCode !== "30GL";
   return isHighWind || isElevatedSnow ? 1 : 0;
-}
-
-function verticalHeightMultiplier(height: number): number {
-  if (height >= 19 && height <= 20) return 3.0;
-  if (height >= 16 && height <= 18) return 2.5;
-  if (height >= 13 && height <= 15) return 2.0;
-  return 1.0;
 }
 
 // ============================================================================
