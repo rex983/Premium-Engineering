@@ -53,7 +53,7 @@ export function calcSnowEngineering(
     ? Math.max(0, totalChannelsNeeded - originalHatChannels)
     : 0;
   const channelPricePerFt = ctx.stateConst?.channelPricePerFt ?? 0;
-  const channelLineCost = extraChannelsNeeded * (config.length + 1) * channelPricePerFt;
+  const channelLineCost = extraChannelsNeeded * (config.length + 1) * channelPricePerFt * c102;
 
   // --- Girts ---
   const girtSpacing = lookupGirtSpacing(trussSpacing, config, snow);
@@ -67,7 +67,7 @@ export function calcSnowEngineering(
   const endsPerimeter = endsEnclosed * config.endsQty * config.width;
   const totalPerimeter = sidesPerimeter + endsPerimeter;
   const tubingPricePerFt = ctx.stateConst?.tubingPricePerFt ?? 0;
-  const girtLineCost = totalPerimeter * extraGirtsNeeded * tubingPricePerFt;
+  const girtLineCost = totalPerimeter * extraGirtsNeeded * tubingPricePerFt * c102;
 
   // --- Verticals ---
   const verticalSpacing = lookupVerticalSpacing(config, snow);
@@ -83,7 +83,7 @@ export function calcSnowEngineering(
   // Snow - Math Calculations!U15 = ROUNDUP(width * 3 / 24, 0) — assumes 3/12 pitch.
   const peakAdd = Math.ceil((config.width * 3) / 24);
   const verticalUnitPrice = (config.height + peakAdd) * tubingPricePerFt;
-  const verticalLineCost = verticalUnitPrice * extraVerticalsNeeded;
+  const verticalLineCost = verticalUnitPrice * extraVerticalsNeeded * c102;
 
   return {
     trussSpacing: trussSpacing > 0 ? `${trussSpacing}"` : "—",
