@@ -56,21 +56,25 @@ export function calcSnowEngineering(
   const channelLineCost = extraChannelsNeeded * (config.length + 1) * channelPricePerFt * c102;
 
   // --- Girts ---
-  const girtSpacing = lookupGirtSpacing(trussSpacing, config, snow);
+  const girtSpacing = lookupGirtSpacing(trussSpacing, config, ctx, snow);
   const originalGirts = lookupOriginalGirts(config.height, snow);
   const girtTotalNeeded = girtSpacing > 0 ? Math.ceil((config.height * 12) / girtSpacing) + 1 : 0;
+  // Sheet gate: girts appear iff (ends Enclosed) AND (sidesPanel Vertical OR endsPanel Vertical).
+  // Perimeter: only vertical panels contribute (V29=sidesV*qty*length, V30=endsV*qty*width).
   const sidesV = config.sidesPanel === "Vertical" ? 1 : 0;
+  const endsV = config.endsPanel === "Vertical" ? 1 : 0;
   const endsEnclosed = config.ends === "Enclosed Ends" ? 1 : 0;
+  const anyVerticalPanel = sidesV || endsV ? 1 : 0;
   const extraGirtsBase = Math.max(0, girtTotalNeeded - originalGirts);
-  const extraGirtsNeeded = extraGirtsBase * sidesV * endsEnclosed;
+  const extraGirtsNeeded = extraGirtsBase * endsEnclosed * anyVerticalPanel;
   const sidesPerimeter = sidesV * config.sidesQty * config.length;
-  const endsPerimeter = endsEnclosed * config.endsQty * config.width;
+  const endsPerimeter = endsV * config.endsQty * config.width;
   const totalPerimeter = sidesPerimeter + endsPerimeter;
   const tubingPricePerFt = ctx.stateConst?.tubingPricePerFt ?? 0;
   const girtLineCost = totalPerimeter * extraGirtsNeeded * tubingPricePerFt * c102;
 
   // --- Verticals ---
-  const verticalSpacing = lookupVerticalSpacing(config, snow);
+  const verticalSpacing = lookupVerticalSpacing(config, ctx, snow);
   const originalVerticals = lookupOriginalVerticals(ctx, snow);
   const totalVerticalsNeeded = verticalSpacing > 0
     ? Math.ceil((config.width * 12) / verticalSpacing) + 1
@@ -117,7 +121,22 @@ interface ResolvedInputs {
   trussWidth: number;        // truss-width bucket
   endsCode: "E" | "O";       // E = enclosed ends, O = open
   styleCode: "AFV" | "STD";  // roof-style code in truss-spacing keys
+  bucketedWind: number;      // wind bucketed per Snow-Changers row 2
   stateConst?: SnowStateConstants;
+}
+
+/**
+ * Snow-Changers row 2 is a piecewise wind bucket: raw values 0..130 map to 105,
+ * 131..140 → 140, 141..155 → 155, 156..165 → 165, 166+ → 180. All the snow-*
+ * lookup tables (truss spacing, hat channels, girts, verticals) are keyed off
+ * the bucketed wind, not the raw input.
+ */
+function bucketWind(w: number): number {
+  if (w <= 130) return 105;
+  if (w <= 140) return 140;
+  if (w <= 155) return 155;
+  if (w <= 165) return 165;
+  return 180;
 }
 
 function resolveInputs(config: BuildingConfig, ch: SnowChangersMatrix): ResolvedInputs {
@@ -125,10 +144,18 @@ function resolveInputs(config: BuildingConfig, ch: SnowChangersMatrix): Resolved
   const legSymbol = ch.legHeightSymbol[config.height] ?? "S";
   const hcWidth = ch.hcWidthBucket[config.width] ?? config.width;
   const trussWidth = ch.trussWidthBucket[config.width] ?? config.width;
-  const endsCode: "E" | "O" = config.ends === "Enclosed Ends" ? "E" : "O";
+  // Pricing-Changers D66: only "E" when B70=4 (all four: sides Fully Enclosed,
+  // ends Enclosed, sidesQty=2, endsQty=2). Any deviation flips to "O".
+  const fullyEnclosed = config.sides === "Fully Enclosed" ? 1 : 0;
+  const endsEnclosed = config.ends === "Enclosed Ends" ? 1 : 0;
+  const sidesQty2 = config.sidesQty === 2 ? 1 : 0;
+  const endsQty2 = config.endsQty === 2 ? 1 : 0;
+  const endsCode: "E" | "O" =
+    fullyEnclosed && endsEnclosed && sidesQty2 && endsQty2 ? "E" : "O";
   const styleCode: "AFV" | "STD" = config.roofStyle === "A-Frame Vertical" ? "AFV" : "STD";
+  const bucketedWind = bucketWind(config.windMph);
   const stateConst = ch.byStateName[config.state];
-  return { snowCode, legSymbol, hcWidth, trussWidth, endsCode, styleCode, stateConst };
+  return { snowCode, legSymbol, hcWidth, trussWidth, endsCode, styleCode, bucketedWind, stateConst };
 }
 
 // C102 = 1 if (wind > 130 OR snowCode != "30GL"), else 0.
@@ -150,7 +177,7 @@ function lookupTrussSpacing(
   if (!ts?.rowKeys?.length || !ts.colKeys?.length) return 0;
 
   const rowKey = `${ctx.legSymbol}-${ctx.snowCode}`;
-  const colKey = `${ctx.endsCode}-${config.windMph}-${ctx.trussWidth}-${ctx.styleCode}`;
+  const colKey = `${ctx.endsCode}-${ctx.bucketedWind}-${ctx.trussWidth}-${ctx.styleCode}`;
 
   const rowIdx = matchString(rowKey, ts.rowKeys);
   const colIdx = matchString(colKey, ts.colKeys);
@@ -195,7 +222,7 @@ function lookupHatChannelSpacing(
   if (!hc?.rowKeys?.length || !hc.windHeader?.length) return 0;
   const rowKey = `${ctx.hcWidth}-${ctx.snowCode}`;
   const rowIdx = matchString(rowKey, hc.rowKeys);
-  const colIdx = hc.windHeader.indexOf(config.windMph) + 1;
+  const colIdx = hc.windHeader.indexOf(ctx.bucketedWind) + 1;
   if (rowIdx === 0 || colIdx === 0) return 0;
   return hc.spacingTable[rowIdx - 1]?.[colIdx - 1] ?? 0;
 }
@@ -214,6 +241,7 @@ function lookupOriginalHatChannels(ctx: ResolvedInputs, snow: SnowMatrices): num
 function lookupGirtSpacing(
   trussSpacing: number,
   config: BuildingConfig,
+  ctx: ResolvedInputs,
   snow: SnowMatrices
 ): number {
   const g = snow.girts;
@@ -224,7 +252,7 @@ function lookupGirtSpacing(
   const bucket = bucketIdx >= 0 ? g.trussSpacingBucket[bucketIdx] : trussSpacing;
 
   const rowIdx = g.girtRowKeys.indexOf(bucket) + 1;
-  const colIdx = g.windHeader.indexOf(config.windMph) + 1;
+  const colIdx = g.windHeader.indexOf(ctx.bucketedWind) + 1;
   if (rowIdx === 0 || colIdx === 0) return 0;
   return g.spacingTable[rowIdx - 1]?.[colIdx - 1] ?? 0;
 }
@@ -237,11 +265,15 @@ function lookupOriginalGirts(legHeight: number, snow: SnowMatrices): number {
   return g.originalCol[idx] ?? 0;
 }
 
-function lookupVerticalSpacing(config: BuildingConfig, snow: SnowMatrices): number {
+function lookupVerticalSpacing(
+  config: BuildingConfig,
+  ctx: ResolvedInputs,
+  snow: SnowMatrices
+): number {
   const v = snow.verticals;
   if (!v?.legHeightHeader?.length || !v.windCol?.length) return 0;
   const colIdx = v.legHeightHeader.indexOf(config.height) + 1;
-  const rowIdx = v.windCol.indexOf(config.windMph) + 1;
+  const rowIdx = v.windCol.indexOf(ctx.bucketedWind) + 1;
   if (rowIdx === 0 || colIdx === 0) return 0;
   return v.spacingTable[rowIdx - 1]?.[colIdx - 1] ?? 0;
 }
