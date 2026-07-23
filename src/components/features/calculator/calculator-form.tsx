@@ -62,12 +62,12 @@ const defaultConfig = (m: PSBEngineeringMatrices, state?: string): BuildingConfi
   roofStyle: "A-Frame Vertical",
   sides: "Fully Enclosed",
   ends: "Enclosed Ends",
-  sidesPanel: "Vertical",
-  endsPanel: "Vertical",
+  sidesPanel: "Horizontal",
+  endsPanel: "Horizontal",
   sidesQty: 2,
   endsQty: 2,
-  windMph: m.meta.defaultWindMph || 105,
-  snowLoad: m.meta.defaultSnowLoad || "30 Ground Load",
+  windMph: 105,
+  snowLoad: "30 Ground Load",
   state: state ?? m.meta.defaultStateLabel ?? "",
 });
 

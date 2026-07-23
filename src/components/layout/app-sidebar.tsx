@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 import {
   Calculator,
   Upload,
@@ -11,6 +10,7 @@ import {
   Snowflake,
   Users,
 } from "lucide-react";
+import type { UserRole } from "@/types/auth";
 import {
   Sidebar,
   SidebarContent,
@@ -38,11 +38,14 @@ const adminItems = [
   { title: "Audit Log", href: "/admin/audit-log", icon: History },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  effectiveRole: UserRole;
+  realRole: UserRole;
+}
+
+export function AppSidebar({ effectiveRole, realRole }: AppSidebarProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const role = session?.user?.role;
-  const showAdmin = role === "admin";
+  const showAdmin = effectiveRole === "admin";
 
   return (
     <Sidebar>
@@ -97,7 +100,7 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
-        <UserNav />
+        <UserNav realRole={realRole} effectiveRole={effectiveRole} />
       </SidebarFooter>
     </Sidebar>
   );
