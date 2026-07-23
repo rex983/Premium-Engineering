@@ -143,26 +143,21 @@ export function CalculatorForm({ matrices, defaultState }: CalculatorFormProps) 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
-        <Section title="Building Geometry" contentClassName="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Section title="Building" contentClassName="grid grid-cols-2 md:grid-cols-4 gap-3">
           {numField("width", "Width (ft)")}
           {numField("length", "Length (ft)")}
           {numField("height", "Leg Height (ft)")}
           {selectField("roofStyle", "Roof Style", ROOF_STYLES)}
-        </Section>
-
-        <Section title="Sides" contentClassName="grid grid-cols-2 md:grid-cols-3 gap-3">
           {selectField("sides", "Side Type", SIDE_OPTIONS)}
           {selectField("sidesPanel", "Side Panel", PANEL_ORIENTATIONS)}
           {numSelectField("sidesQty", "Sides Qty", [0, 1, 2])}
-        </Section>
-
-        <Section title="Ends" contentClassName="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="hidden md:block" />
           {selectField("ends", "End Type", END_OPTIONS)}
           {selectField("endsPanel", "End Panel", PANEL_ORIENTATIONS)}
           {numSelectField("endsQty", "Ends Qty", [0, 1, 2])}
         </Section>
 
-        <Section title="Engineering Inputs" contentClassName="grid grid-cols-2 md:grid-cols-2 gap-3">
+        <Section title="Loads" contentClassName="grid grid-cols-2 gap-3">
           {selectField("snowLoad", "Snow Load", SNOW_LOAD_OPTIONS)}
           {numSelectField("windMph", "Wind (MPH)", WIND_OPTIONS)}
         </Section>
