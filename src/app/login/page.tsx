@@ -4,8 +4,6 @@ import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -18,32 +16,11 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/calculator";
   const errorParam = searchParams.get("error");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   async function handleGoogleSignIn() {
     setLoading(true);
     await signIn("google", { callbackUrl });
-  }
-
-  async function handleCredentialsSignIn(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError(null);
-    setLoading(true);
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-      callbackUrl,
-    });
-    setLoading(false);
-    if (res?.error) {
-      setFormError("Invalid email or password");
-      return;
-    }
-    if (res?.url) window.location.href = res.url;
   }
 
   return (
@@ -55,49 +32,11 @@ function LoginForm() {
         <CardDescription>Engineering Calculator</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form onSubmit={handleCredentialsSignIn} className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="email" className="text-xs">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@bigbuildingsdirect.com"
-              required
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="password" className="text-xs">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {(formError || errorParam) && (
-            <p className="text-xs text-destructive">
-              {formError || "Sign in failed. Try again."}
-            </p>
-          )}
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-[10px] uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or</span>
-          </div>
-        </div>
-
+        {errorParam && (
+          <p className="text-xs text-destructive text-center">
+            Sign in failed. Try again.
+          </p>
+        )}
         <Button
           onClick={handleGoogleSignIn}
           disabled={loading}
@@ -110,7 +49,7 @@ function LoginForm() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
-          Sign in with Google
+          {loading ? "Signing in…" : "Sign in with Google"}
         </Button>
       </CardContent>
     </Card>

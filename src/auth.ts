@@ -48,46 +48,6 @@ providers.push(
   })
 );
 
-// Single-admin local credentials path — gated by ADMIN_PASSWORD env var with
-// a constant-time string compare. No dev-mode bypass; no email-only login.
-providers.push(
-  Credentials({
-    id: "credentials",
-    name: "Admin Password",
-    credentials: {
-      email: { label: "Email", type: "email" },
-      password: { label: "Password", type: "password" },
-    },
-    async authorize(credentials) {
-      const email = typeof credentials?.email === "string" ? credentials.email.toLowerCase() : "";
-      const password = typeof credentials?.password === "string" ? credentials.password : "";
-      if (!email || !password) return null;
-
-      const adminPw = (process.env.ADMIN_PASSWORD || "").trim();
-      // Any @bigbuildingsdirect.com email may log in with the shared internal
-      // ADMIN_PASSWORD. This app is internal-only; per-user auth flows through
-      // Google or Launcher SSO. Role is resolved from the `profiles` table in
-      // the jwt callback (falls back to viewer if the email isn't a profile).
-      if (
-        email.endsWith("@bigbuildingsdirect.com") &&
-        adminPw.length >= 8 &&
-        constantTimeEqual(password, adminPw)
-      ) {
-        const nameFromEmail = email.split("@")[0].replace(/\./g, " ");
-        return { id: email, email, name: nameFromEmail, image: null };
-      }
-      return null;
-    },
-  })
-);
-
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers,
