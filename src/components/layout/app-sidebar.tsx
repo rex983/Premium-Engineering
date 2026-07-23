@@ -9,6 +9,7 @@ import {
   Map,
   History,
   Snowflake,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,7 @@ const navItems = [
 ];
 
 const adminItems = [
+  { title: "Users", href: "/admin/users", icon: Users },
   { title: "Upload Pricing", href: "/admin/upload", icon: Upload },
   { title: "Regions", href: "/admin/regions", icon: Map },
   { title: "State → Region", href: "/admin/states", icon: Snowflake },

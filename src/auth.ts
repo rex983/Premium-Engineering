@@ -66,12 +66,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async jwt({ token, user }) {
       if (user?.email) {
-        if (user.email === "rex@bigbuildingsdirect.com") {
-          token.role = "admin" as UserRole;
-          token.profileId = "admin-001";
-          return token;
-        }
-
         try {
           const supabase = createAdminClient();
           const { data: profile } = await supabase
