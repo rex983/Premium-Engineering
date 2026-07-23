@@ -21,7 +21,7 @@ export async function verifyLauncherSsoToken(
 ): Promise<LauncherSsoClaims> {
   const { payload } = await jwtVerify(token, JWKS, {
     issuer: "bbd-launcher",
-    audience: "psb-pricing",
+    audience: "premium-engineering",
   });
 
   if (typeof payload.email !== "string") {
