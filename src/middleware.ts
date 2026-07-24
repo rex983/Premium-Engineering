@@ -15,9 +15,9 @@ export function middleware(req: NextRequest) {
 
   if (!token) {
     const callback = pathname === "/" ? "/calculator" : pathname;
-    const signInUrl = new URL("/api/auth/signin/google", req.url);
-    signInUrl.searchParams.set("callbackUrl", callback);
-    return NextResponse.redirect(signInUrl);
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", callback);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
