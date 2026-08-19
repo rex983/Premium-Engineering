@@ -9,6 +9,7 @@ interface ProfileRow {
   full_name: string | null;
   role: string;
   office: string | null;
+  department: string | null;
 }
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function UsersAdminPage() {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, office")
+    .select("id, email, full_name, role, office, department")
     .order("full_name", { ascending: true });
   const profiles = (data ?? []) as ProfileRow[];
 
@@ -79,6 +80,7 @@ function Section({
                 <th className="px-4 py-2.5 text-left font-medium">Email</th>
                 <th className="px-4 py-2.5 text-left font-medium">Role</th>
                 <th className="px-4 py-2.5 text-left font-medium">Office</th>
+                <th className="px-4 py-2.5 text-left font-medium">Department</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +93,9 @@ function Section({
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">
                     {p.office || "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">
+                    {p.department || "—"}
                   </td>
                 </tr>
               ))}
