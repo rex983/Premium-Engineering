@@ -21,7 +21,6 @@ import type { UserRole } from "@/types/auth";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Admin",
-  manager: "Manager",
   senior_manager: "Senior Manager",
   junior_manager: "Junior Manager",
   team_lead: "Team Lead",
@@ -33,7 +32,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
   viewer: "Viewer",
 };
 
-const VIEW_AS_ROLES: UserRole[] = ["admin", "manager", "sales_rep", "viewer"];
+const VIEW_AS_ROLES: UserRole[] = ["admin", "senior_manager", "sales_rep", "viewer"];
 
 interface UserNavProps {
   realRole: UserRole;

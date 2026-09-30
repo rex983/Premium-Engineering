@@ -4,7 +4,7 @@ import type { UserRole } from "@/types/auth";
 
 export const VIEW_AS_COOKIE = "pse_view_as_role";
 
-const IMPERSONABLE_ROLES: UserRole[] = ["admin", "manager", "sales_rep", "viewer"];
+const IMPERSONABLE_ROLES: UserRole[] = ["admin", "senior_manager", "sales_rep", "viewer"];
 
 export interface EffectiveIdentity {
   realRole: UserRole;

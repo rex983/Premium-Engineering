@@ -8,7 +8,6 @@ import type { UserRole } from "@/types/auth";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Admin",
-  manager: "Manager",
   senior_manager: "Senior Manager",
   junior_manager: "Junior Manager",
   team_lead: "Team Lead",

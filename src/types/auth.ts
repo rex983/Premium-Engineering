@@ -2,7 +2,6 @@ import type { DefaultSession } from "next-auth";
 
 export type UserRole =
   | "admin"
-  | "manager"
   | "senior_manager"
   | "junior_manager"
   | "team_lead"
