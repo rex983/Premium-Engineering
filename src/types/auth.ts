@@ -11,7 +11,7 @@ export type UserRole =
   | "bst"
   | "rnd"
   | "viewer";
-export type Office = "Harbor" | "Marion" | "BST" | "RnD";
+export type Office = "Harbor" | "BST" | "RnD";
 export type Department = "SALES TEAM" | "BST" | "RnD";
 
 export interface UserProfile {
