@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { parsePsbWorkbook } from "@/lib/excel/parser";
 import { logAudit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/admin-guard";
+import { invalidatePricingDataCache } from "@/lib/pricing-data-cache";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -131,6 +132,7 @@ export async function POST(req: NextRequest) {
   await supabase.from("psbe_pricing_data")
     .update({ is_current: true })
     .eq("id", newPricing.id);
+  invalidatePricingDataCache();
 
   // Update upload to success
   const sheetCount = Object.keys(parseResult.matrices).length;

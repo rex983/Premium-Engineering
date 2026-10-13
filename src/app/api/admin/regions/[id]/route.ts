@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/admin-guard";
+import { invalidatePricingDataCache } from "@/lib/pricing-data-cache";
 
 const VALID_STATES = new Set([
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN",
@@ -69,6 +70,8 @@ export async function DELETE(
 
   const { error } = await supabase.from("psbe_regions").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // ON DELETE CASCADE removes the region's pricing rows too.
+  invalidatePricingDataCache();
 
   await logAudit({
     actorEmail: guard.email,
