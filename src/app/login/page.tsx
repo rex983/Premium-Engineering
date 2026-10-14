@@ -11,11 +11,12 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Logo } from "@/components/layout/logo";
+import { signInErrorMessage } from "@/lib/launcher/sign-in-errors";
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/calculator";
-  const errorParam = searchParams.get("error");
+  const errorMessage = signInErrorMessage(searchParams.get("error"));
   const [loading, setLoading] = useState(false);
 
   async function handleGoogleSignIn() {
@@ -32,9 +33,9 @@ function LoginForm() {
         <CardDescription>Engineering Calculator</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {errorParam && (
-          <p className="text-xs text-destructive text-center">
-            Sign in failed. Try again.
+        {errorMessage && (
+          <p role="alert" className="text-xs text-destructive text-center">
+            {errorMessage}
           </p>
         )}
         <Button

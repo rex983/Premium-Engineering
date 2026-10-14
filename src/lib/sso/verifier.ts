@@ -9,7 +9,9 @@ const JWKS_URL =
 
 const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 
-const AUDIENCE = "premium-engineering";
+// Must match launcher_sso_configs.jwt_audience for this app.
+export const SSO_AUDIENCE = "premium-engineering";
+const AUDIENCE = SSO_AUDIENCE;
 
 export interface LauncherSsoClaims {
   sub: string;
@@ -17,6 +19,37 @@ export interface LauncherSsoClaims {
   name: string;
   role: string;
   profile_id: string;
+  /**
+   * Present when a launcher admin is previewing the app as this user
+   * ("View as"). The rest of the claims describe the target user.
+   */
+  act?: LauncherSsoActor;
+}
+
+export interface LauncherSsoActor {
+  sub: string;
+  profile_id: string;
+  name: string;
+}
+
+/** Validate the optional actor claim; reject malformed ones. */
+function parseActor(raw: unknown): LauncherSsoActor | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("SSO token has a malformed act claim");
+  }
+  const act = raw as Record<string, unknown>;
+  if (typeof act.sub !== "string" || act.sub.length === 0) {
+    throw new Error("SSO token act claim missing sub");
+  }
+  if (typeof act.profile_id !== "string" || act.profile_id.length === 0) {
+    throw new Error("SSO token act claim missing profile_id");
+  }
+  return {
+    sub: act.sub,
+    profile_id: act.profile_id,
+    name: typeof act.name === "string" ? act.name : "",
+  };
 }
 
 export async function verifyLauncherSsoToken(
@@ -36,6 +69,7 @@ export async function verifyLauncherSsoToken(
   if (typeof payload.jti !== "string" || !payload.jti) {
     throw new Error("SSO token missing jti claim");
   }
+  const act = parseActor(payload.act);
 
   await consumeJti(payload.jti, payload.exp);
 
@@ -48,6 +82,7 @@ export async function verifyLauncherSsoToken(
       typeof payload.profile_id === "string"
         ? payload.profile_id
         : String(payload.sub ?? ""),
+    ...(act ? { act } : {}),
   };
 }
 

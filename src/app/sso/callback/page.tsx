@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { signInErrorMessage } from "@/lib/launcher/sign-in-errors";
 
 function Callback() {
   const router = useRouter();
@@ -24,7 +25,13 @@ function Callback() {
       if (res?.ok && res.url) {
         router.replace(res.url);
       } else {
-        setError("Sign-in failed. Token may be expired or invalid.");
+        // signIn callback denials come back as ?error=<code> (e.g.
+        // NoAppAccess when the launcher doesn't grant this app).
+        const code = res?.error && res.error !== "CredentialsSignin" ? res.error : null;
+        setError(
+          signInErrorMessage(code) ??
+            "Sign-in failed. Token may be expired or invalid.",
+        );
       }
     })();
   }, [router, searchParams]);
