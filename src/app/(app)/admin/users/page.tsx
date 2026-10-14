@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LAUNCHER_USERS_URL } from "@/lib/launcher/urls";
+import { getLauncherOrg, orgLabel, type LauncherOrg } from "@/lib/launcher/org";
 
 interface ProfileRow {
   id: string;
@@ -18,13 +19,16 @@ export const dynamic = "force-dynamic";
 export default async function UsersAdminPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "admin") redirect("/calculator");
+  if (session.user.permRole !== "admin") redirect("/calculator");
 
   const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role, office, department")
-    .order("full_name", { ascending: true });
+  const [{ data }, org] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, email, full_name, role, office, department")
+      .order("full_name", { ascending: true }),
+    getLauncherOrg(),
+  ]);
   const profiles = (data ?? []) as ProfileRow[];
 
   const admins = profiles.filter((p) => p.role === "admin");
@@ -48,8 +52,8 @@ export default async function UsersAdminPage() {
         </p>
       </div>
 
-      <Section title="Admins" empty="No admins yet." rows={admins} />
-      <Section title="Other users" empty="No other users." rows={others} />
+      <Section title="Admins" empty="No admins yet." rows={admins} org={org} />
+      <Section title="Other users" empty="No other users." rows={others} org={org} />
     </div>
   );
 }
@@ -58,10 +62,12 @@ function Section({
   title,
   empty,
   rows,
+  org,
 }: {
   title: string;
   empty: string;
   rows: ProfileRow[];
+  org: LauncherOrg;
 }) {
   return (
     <section>
@@ -89,14 +95,14 @@ function Section({
                 <tr key={p.id} className="border-t align-middle">
                   <td className="px-4 py-2.5">{p.full_name || "—"}</td>
                   <td className="px-4 py-2.5 text-muted-foreground">{p.email}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground capitalize">
-                    {p.role}
+                  <td className="px-4 py-2.5 text-muted-foreground">
+                    {orgLabel(org.roles, p.role)}
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">
-                    {p.office || "—"}
+                    {orgLabel(org.offices, p.office) || "—"}
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">
-                    {p.department || "—"}
+                    {orgLabel(org.departments, p.department) || "—"}
                   </td>
                 </tr>
               ))}

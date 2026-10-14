@@ -17,7 +17,7 @@ export function ViewAsBanner() {
   if (!viewAs) return null;
 
   const targetName = session.user?.name || session.user?.email || "user";
-  const targetRole = session.user?.role || "no role";
+  const targetRole = session.user?.roleLabel || session.user?.role || "no role";
 
   async function exit() {
     setExiting(true);

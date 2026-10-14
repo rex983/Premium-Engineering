@@ -22,12 +22,12 @@ export async function requireAdmin(opts: { write?: boolean } = {}): Promise<
 > {
   const sessionRaw = (await (auth as unknown as () => Promise<unknown>)()) as
     | {
-        user?: { email?: string | null; name?: string | null; role?: UserRole; profileId?: string };
+        user?: { email?: string | null; name?: string | null; permRole?: UserRole; profileId?: string };
         viewAs?: ViewAs | null;
       }
     | null;
   const user = sessionRaw?.user;
-  if (!user || user.role !== "admin") {
+  if (!user || user.permRole !== "admin") {
     return { ok: false, res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
   if (opts.write && sessionRaw?.viewAs) {

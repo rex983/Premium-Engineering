@@ -10,6 +10,6 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "admin") redirect("/calculator");
+  if (session.user.permRole !== "admin") redirect("/calculator");
   return <>{children}</>;
 }

@@ -11,15 +11,16 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Role comes from the launcher's profiles row via the session (refreshed
-  // every 60s). Unknown roles get the non-admin view.
+  // permRole comes from the launcher (launcher_permission_role, refreshed
+  // every 60s) and drives the admin nav; roleLabel is for display only.
   const session = await auth();
-  const role = session?.user?.role ?? "";
+  const permRole = session?.user?.permRole ?? "";
+  const roleLabel = session?.user?.roleLabel ?? session?.user?.role ?? "";
 
   return (
     <SessionProvider>
       <SidebarProvider>
-        <AppSidebar role={role} />
+        <AppSidebar permRole={permRole} roleLabel={roleLabel} />
         <SidebarInset>
           <ViewAsBanner />
           {children}

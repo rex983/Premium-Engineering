@@ -39,12 +39,15 @@ const adminItems = [
 ];
 
 interface AppSidebarProps {
-  role: UserRole;
+  /** Permission role (launcher_permission_role) — gates the admin nav. */
+  permRole: UserRole;
+  /** Display label of the real launcher role. */
+  roleLabel: string;
 }
 
-export function AppSidebar({ role }: AppSidebarProps) {
+export function AppSidebar({ permRole, roleLabel }: AppSidebarProps) {
   const pathname = usePathname();
-  const showAdmin = role === "admin";
+  const showAdmin = permRole === "admin";
 
   return (
     <Sidebar>
@@ -99,7 +102,7 @@ export function AppSidebar({ role }: AppSidebarProps) {
         )}
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
-        <UserNav role={role} />
+        <UserNav roleLabel={roleLabel} />
       </SidebarFooter>
     </Sidebar>
   );

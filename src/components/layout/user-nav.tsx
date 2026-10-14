@@ -12,30 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { KnownUserRole, UserRole } from "@/types/auth";
-
-const ROLE_LABEL: Record<KnownUserRole, string> = {
-  admin: "Admin",
-  senior_manager: "Senior Manager",
-  junior_manager: "Junior Manager",
-  team_lead: "Team Lead",
-  cancellations_dept: "Cancellations",
-  revisions_dept: "Revisions",
-  sales_rep: "Sales Rep",
-  bst: "BST",
-  rnd: "R&D",
-};
-
-/** Custom launcher roles fall back to their raw name. */
-function roleLabel(role: UserRole): string {
-  return ROLE_LABEL[role as KnownUserRole] ?? (role || "No role");
-}
-
 interface UserNavProps {
-  role: UserRole;
+  /** launcher_roles.display_name of the real role (raw name if unknown). */
+  roleLabel: string;
 }
 
-export function UserNav({ role }: UserNavProps) {
+export function UserNav({ roleLabel }: UserNavProps) {
   const { data: session } = useSession();
 
   if (!session?.user) return null;
@@ -66,7 +48,7 @@ export function UserNav({ role }: UserNavProps) {
               {session.user.email}
             </span>
             <span className="mt-1 text-xs font-normal text-muted-foreground">
-              Role: {roleLabel(role)}
+              Role: {roleLabel || "No role"}
             </span>
           </div>
         </DropdownMenuLabel>
