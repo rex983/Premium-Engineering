@@ -7,7 +7,11 @@ import {
   verifyLauncherSsoToken,
   type LauncherSsoActor,
 } from "@/lib/sso/verifier";
-import { checkLauncherAccess } from "@/lib/launcher/access";
+import {
+  checkLauncherAccess,
+  resolvePermissionRole,
+} from "@/lib/launcher/access";
+import { roleLabel } from "@/lib/launcher/org";
 import { logAudit } from "@/lib/audit";
 import type { UserRole, Office, Department, ViewAs } from "@/types/auth";
 
@@ -75,6 +79,7 @@ const PROFILE_COLUMNS =
 type SignInUser = {
   viewAsActor?: LauncherSsoActor;
   profile?: ProfileRow;
+  permRole?: string;
   viewAs?: ViewAs;
 };
 
@@ -111,10 +116,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       extra.profile = profile;
 
       // The launcher decides who may open this app (role x office grid +
-      // per-person grants).
-      const access = await checkLauncherAccess(profile.id);
+      // per-person grants). Only an explicit true lets anyone in.
+      const [access, permRole] = await Promise.all([
+        checkLauncherAccess(profile.id),
+        resolvePermissionRole(profile.role),
+      ]);
       if (access === "deny") return NO_APP_ACCESS;
       if (access !== "allow") return LAUNCHER_UNAVAILABLE;
+      extra.permRole = permRole;
 
       // Admin "View as": the launcher signed a token for the target user
       // plus an `act` claim naming the admin, who must still be an active
@@ -147,18 +156,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user?.email) {
         token.signedInAt = Date.now();
         token.checkedAt = Date.now();
+        token.lastVerifiedAt = Date.now();
         const extra = user as typeof user & SignInUser;
-        let profile = extra.profile ?? null;
-        if (!profile) {
-          try {
-            profile = await loadProfileByEmail(user.email);
-          } catch {
-            profile = null;
-          }
-        }
-        // signIn already required an active profile; never invent a role.
+        const profile = extra.profile ?? null;
+        // signIn always sets this; never invent a role.
         if (!profile) return null;
-        applyProfile(token, profile);
+        await applyProfile(
+          token,
+          profile,
+          extra.permRole ?? (await resolvePermissionRole(profile.role)),
+        );
         token.viewAs = extra.viewAs ?? null;
         if (extra.viewAs) {
           // Attribute the impersonation to the admin, never to the target.
@@ -178,6 +185,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (token) {
         session.user.role = token.role as UserRole;
+        // Tokens minted before permRole existed fall back to the raw role
+        // until the next 60s recheck fills it in.
+        session.user.permRole = (token.permRole ?? token.role ?? "") as UserRole;
+        session.user.roleLabel =
+          (token.roleLabel as string | undefined) || (token.role as string);
         session.user.profileId = token.profileId as string;
         if (token.office) session.user.office = token.office as Office;
         session.user.department = (token.department ?? null) as Department | null;
@@ -197,6 +209,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 const REVALIDATE_INTERVAL_MS = 60 * 1000;
 // "View as" sessions end this long after they start, no matter what.
 const VIEW_AS_MAX_MS = 60 * 60 * 1000;
+// If the launcher can't be reached, keep a session at most this long past
+// its last successful check.
+const MAX_UNVERIFIED_MS = 5 * 60 * 1000;
 
 async function loadProfileByEmail(email: string): Promise<ProfileRow | null> {
   const { data, error } = await createAdminClient()
@@ -224,8 +239,10 @@ function isValidActor(actor: ProfileRow | null): actor is ProfileRow {
 }
 
 /** Copy launcher-managed identity fields from the profile row onto the token. */
-function applyProfile(token: JWT, profile: ProfileRow) {
+async function applyProfile(token: JWT, profile: ProfileRow, permRole: string) {
   token.role = profile.role as UserRole;
+  token.permRole = permRole as UserRole;
+  token.roleLabel = await roleLabel(profile.role);
   token.profileId = profile.id;
   token.office = (profile.office ?? undefined) as Office | undefined;
   token.department = (profile.department ?? null) as Department | null;
@@ -234,14 +251,16 @@ function applyProfile(token: JWT, profile: ProfileRow) {
 }
 
 /**
- * Session revocation: at most once a minute, re-read the caller's profile and
- * launcher app access (in parallel) and drop the session if the profile is
- * gone, deactivated, force-signed-out (launcher sets profiles.signed_out_at)
- * after this session started, or no longer has launcher access to this app.
+ * Session revocation: at most once a minute, re-read the caller's profile,
+ * launcher app access, permission role and (for View as) the admin, in
+ * parallel. The session is dropped if the profile is gone, deactivated,
+ * force-signed-out (launcher sets profiles.signed_out_at) after this session
+ * started, or the launcher no longer grants this app (false or unregistered).
  * A View-as session also needs its admin to still be an active admin, and
- * ends 60 minutes after it started. Role / office / department / is_it /
- * name are refreshed from the same row. Transient DB errors keep the session
- * and leave checkedAt untouched so the next request retries.
+ * ends 60 minutes after it started. Role / permRole / office / department /
+ * is_it / name are refreshed from the same row. If the launcher or DB can't
+ * answer, the session is kept (retried on the next request) for at most
+ * 5 minutes past the last successful check.
  */
 async function revalidateToken(token: JWT): Promise<JWT | null> {
   const now = Date.now();
@@ -258,13 +277,22 @@ async function revalidateToken(token: JWT): Promise<JWT | null> {
   }
 
   if (!token.email) return null;
+
+  const unverified = (): JWT | null => {
+    const lastVerifiedAt =
+      typeof token.lastVerifiedAt === "number" ? token.lastVerifiedAt : checkedAt;
+    return now - lastVerifiedAt > MAX_UNVERIFIED_MS ? null : token;
+  };
+
   const profileId = typeof token.profileId === "string" ? token.profileId : null;
+  const cachedRole = typeof token.role === "string" ? token.role : "";
 
   try {
-    const [profile, access, actor] = await Promise.all([
+    const [profile, access, actor, guessedPermRole] = await Promise.all([
       loadProfileByEmail(token.email),
       profileId ? checkLauncherAccess(profileId) : Promise.resolve(null),
       viewAs ? loadProfileById(viewAs.actorProfileId) : Promise.resolve(null),
+      resolvePermissionRole(cachedRole),
     ]);
     if (!profile || profile.is_active === false) return null;
     if (profile.signed_out_at && new Date(profile.signed_out_at).getTime() > (token.signedInAt as number)) {
@@ -277,15 +305,21 @@ async function revalidateToken(token: JWT): Promise<JWT | null> {
     const result = access ?? (await checkLauncherAccess(profile.id));
     if (result === "deny" || result === "unregistered") return null;
     if (result === "error") {
-      console.warn("[auth] launcher access recheck failed; keeping session");
-      return token;
+      console.warn("[auth] launcher access recheck failed; session unverified");
+      return unverified();
     }
 
-    applyProfile(token, profile);
+    // The role may have changed in the launcher since the last check.
+    const permRole =
+      profile.role === cachedRole
+        ? guessedPermRole
+        : await resolvePermissionRole(profile.role);
+    await applyProfile(token, profile, permRole);
     token.checkedAt = now;
+    token.lastVerifiedAt = now;
     return token;
   } catch (err) {
-    console.warn("[auth] profile revalidation threw; keeping session", err);
-    return token;
+    console.warn("[auth] profile revalidation threw; session unverified", err);
+    return unverified();
   }
 }

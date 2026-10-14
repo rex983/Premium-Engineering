@@ -1,9 +1,9 @@
 // Messages for the ?error= codes set by the signIn callback in src/auth.ts.
 const MESSAGES: Record<string, string> = {
   NoAppAccess:
-    "You don't have access to Premium Engineering in the launcher. Ask an admin to grant it in the BBD Launcher.",
+    "You don't have access to Premium Engineering in the BBD Launcher. Ask an admin to grant it there.",
   LauncherUnavailable:
-    "Couldn't confirm your Premium Engineering access with the launcher. Please try again in a moment.",
+    "Couldn't confirm your launcher access — try again in a moment.",
   ViewAsDenied:
     "\"View as\" is only available to active launcher admins.",
   AccessDenied:

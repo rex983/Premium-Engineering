@@ -45,3 +45,40 @@ export async function checkLauncherAccess(
     return "error";
   }
 }
+
+const MISSING_RPC = new Set(["PGRST202", "42883", "PGRST204"]);
+
+/**
+ * The role whose in-app permissions this person gets:
+ * launcher_permission_role(role) = coalesce(launcher_roles.acts_as, name).
+ * A custom role with no acts_as maps to itself (least privilege here).
+ * acts_as can never yield "admin" — only role === "admin" is an admin.
+ * Falls back to the raw role if the RPC is missing, errors, or the role isn't
+ * in launcher_roles.
+ */
+export async function resolvePermissionRole(
+  role: string | null | undefined,
+): Promise<string> {
+  const raw = role ?? "";
+  if (!raw || raw === "admin") return raw;
+  try {
+    const { data, error } = await createAdminClient().rpc(
+      "launcher_permission_role",
+      { p_role: raw },
+    );
+    if (error) {
+      if (!MISSING_RPC.has(error.code ?? "")) {
+        console.error("launcher_permission_role failed:", error.message);
+      }
+      return raw;
+    }
+    if (typeof data !== "string" || !data || data === "admin") return raw;
+    return data;
+  } catch (err) {
+    console.error(
+      "launcher_permission_role threw:",
+      err instanceof Error ? err.message : err,
+    );
+    return raw;
+  }
+}

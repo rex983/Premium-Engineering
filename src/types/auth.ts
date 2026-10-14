@@ -1,10 +1,11 @@
 import type { DefaultSession } from "next-auth";
 
 /**
- * Launcher roles (launcher_roles.name). Admins can add custom roles in the
- * launcher, so any other string is possible — every check in this app is an
- * explicit allow-list, so an unknown role gets the least-privileged behavior
- * (calculator only).
+ * Built-in launcher roles (launcher_roles.name). Admins can add custom roles
+ * in the launcher, so any other string is possible. Permission checks use
+ * session.user.permRole (launcher_permission_role: a custom role's acts_as,
+ * else itself) against explicit allow-lists, so a custom role with no acts_as
+ * gets the least-privileged behavior (calculator only).
  */
 export type KnownUserRole =
   | "admin"
@@ -17,8 +18,10 @@ export type KnownUserRole =
   | "bst"
   | "rnd";
 export type UserRole = KnownUserRole | (string & {});
-export type Office = "Sales" | "BST" | "RnD";
-export type Department = "SALES TEAM" | "BST" | "RnD";
+/** launcher_offices.name — admins can add more in the launcher. */
+export type Office = string;
+/** launcher_departments.name — admins can add more in the launcher. */
+export type Department = string;
 
 /** Set while a launcher admin is viewing this app as another user (read-only). */
 export interface ViewAs {
@@ -41,7 +44,12 @@ export interface UserProfile {
 declare module "next-auth" {
   interface Session {
     user: {
+      /** Real launcher role — display only. */
       role: UserRole;
+      /** Role used for every permission check (see KnownUserRole). */
+      permRole: UserRole;
+      /** launcher_roles.display_name for `role` (raw name if unknown). */
+      roleLabel: string;
       profileId: string;
       office?: Office;
       department?: Department | null;
@@ -53,6 +61,8 @@ declare module "next-auth" {
 
   interface JWT {
     role?: UserRole;
+    permRole?: UserRole;
+    roleLabel?: string;
     profileId?: string;
     office?: Office;
     department?: Department | null;
