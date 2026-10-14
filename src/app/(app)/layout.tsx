@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { ViewAsBanner } from "@/components/layout/view-as-banner";
-import { getEffectiveIdentity } from "@/lib/view-as";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +11,17 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const me = await getEffectiveIdentity();
-  const realRole = me?.realRole ?? "viewer";
-  const effectiveRole = me?.effectiveRole ?? "viewer";
-  const isImpersonating = me?.isImpersonating ?? false;
+  // Role comes from the launcher's profiles row via the session (refreshed
+  // every 60s). Unknown roles get the non-admin view.
+  const session = await auth();
+  const role = session?.user?.role ?? "";
 
   return (
     <SessionProvider>
       <SidebarProvider>
-        <AppSidebar effectiveRole={effectiveRole} realRole={realRole} />
+        <AppSidebar role={role} />
         <SidebarInset>
-          {isImpersonating && <ViewAsBanner effectiveRole={effectiveRole} />}
+          <ViewAsBanner />
           {children}
         </SidebarInset>
       </SidebarProvider>

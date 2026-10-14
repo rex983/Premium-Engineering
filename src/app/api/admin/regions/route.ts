@@ -45,7 +45,7 @@ export async function GET() {
 
 /** POST — create a new region */
 export async function POST(req: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin({ write: true });
   if (!guard.ok) return guard.res;
 
   const body = await req.json();

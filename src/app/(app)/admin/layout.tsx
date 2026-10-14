@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getEffectiveIdentity } from "@/lib/view-as";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +8,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const me = await getEffectiveIdentity();
-  if (!me) redirect("/login");
-  if (me.effectiveRole !== "admin") redirect("/calculator");
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (session.user.role !== "admin") redirect("/calculator");
   return <>{children}</>;
 }

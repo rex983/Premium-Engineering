@@ -1,56 +1,55 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 import { Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import type { UserRole } from "@/types/auth";
+import { LAUNCHER_DASHBOARD_URL } from "@/lib/launcher/urls";
 
-const ROLE_LABEL: Record<UserRole, string> = {
-  admin: "Admin",
-  senior_manager: "Senior Manager",
-  junior_manager: "Junior Manager",
-  team_lead: "Team Lead",
-  cancellations_dept: "Cancellations",
-  revisions_dept: "Revisions",
-  sales_rep: "Sales Rep",
-  bst: "BST",
-  rnd: "R&D",
-  viewer: "Viewer",
-};
+/**
+ * Fixed banner shown while a launcher admin is viewing this app as another
+ * user. Everything is read-only server-side; "Exit" signs out of this app
+ * and returns to the launcher dashboard.
+ */
+export function ViewAsBanner() {
+  const { data: session } = useSession();
+  const [exiting, setExiting] = useState(false);
+  const viewAs = session?.viewAs;
+  if (!viewAs) return null;
 
-export function ViewAsBanner({ effectiveRole }: { effectiveRole: UserRole }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const targetName = session.user?.name || session.user?.email || "user";
+  const targetRole = session.user?.role || "no role";
 
-  async function returnToAdmin() {
-    setLoading(true);
-    await fetch("/api/view-as", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "admin" }),
-    });
-    router.refresh();
+  async function exit() {
+    setExiting(true);
+    try {
+      await signOut({ redirect: false });
+    } finally {
+      window.location.href = LAUNCHER_DASHBOARD_URL;
+    }
   }
 
   return (
-    <div className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b bg-amber-100 px-4 py-2 text-sm text-amber-900 dark:bg-amber-950/60 dark:text-amber-100">
-      <div className="flex items-center gap-2">
-        <Eye className="h-4 w-4" />
-        <span>
-          Viewing as{" "}
-          <span className="font-medium">{ROLE_LABEL[effectiveRole]}</span>
-        </span>
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={loading}
-        onClick={returnToAdmin}
-        className="h-7 border-amber-300 bg-amber-50 hover:bg-amber-100"
+    <>
+      <div
+        role="status"
+        className="fixed inset-x-0 top-0 z-[100] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-400 px-4 py-2 text-sm font-medium text-black shadow-md"
       >
-        Return to admin
-      </Button>
-    </div>
+        <Eye className="h-4 w-4 shrink-0" aria-hidden />
+        <span>
+          Viewing as <strong>{targetName}</strong> ({targetRole}) — read-only.
+          Signed in as {viewAs.actorName}.
+        </span>
+        <button
+          type="button"
+          onClick={exit}
+          disabled={exiting}
+          className="rounded border border-black/70 bg-black px-3 py-0.5 text-xs font-semibold text-amber-300 hover:bg-black/80 disabled:opacity-60"
+        >
+          {exiting ? "Exiting…" : "Exit"}
+        </button>
+      </div>
+      {/* Spacer so the banner never covers page content. */}
+      <div aria-hidden className="h-10 shrink-0" />
+    </>
   );
 }

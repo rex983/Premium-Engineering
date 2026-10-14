@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { LAUNCHER_USERS_URL } from "@/lib/launcher/urls";
 
 interface ProfileRow {
   id: string;
@@ -36,14 +37,14 @@ export default async function UsersAdminPage() {
         <p className="text-sm text-muted-foreground">
           Identity, role, and office are managed in the{" "}
           <Link
-            href="https://bbd-launcher.vercel.app/admin/users"
+            href={LAUNCHER_USERS_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary underline underline-offset-2 hover:no-underline"
           >
             BBD Launcher
           </Link>{" "}
-          and propagate here on next sign-in.
+          and sync here within a minute.
         </p>
       </div>
 

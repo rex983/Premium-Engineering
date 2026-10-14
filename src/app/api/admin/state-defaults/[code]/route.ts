@@ -8,7 +8,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin({ write: true });
   if (!guard.ok) return guard.res;
 
   const { code } = await params;

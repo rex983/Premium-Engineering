@@ -39,13 +39,12 @@ const adminItems = [
 ];
 
 interface AppSidebarProps {
-  effectiveRole: UserRole;
-  realRole: UserRole;
+  role: UserRole;
 }
 
-export function AppSidebar({ effectiveRole, realRole }: AppSidebarProps) {
+export function AppSidebar({ role }: AppSidebarProps) {
   const pathname = usePathname();
-  const showAdmin = effectiveRole === "admin";
+  const showAdmin = role === "admin";
 
   return (
     <Sidebar>
@@ -100,7 +99,7 @@ export function AppSidebar({ effectiveRole, realRole }: AppSidebarProps) {
         )}
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
-        <UserNav realRole={realRole} effectiveRole={effectiveRole} />
+        <UserNav role={role} />
       </SidebarFooter>
     </Sidebar>
   );

@@ -10,7 +10,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin({ write: true });
   if (!guard.ok) return guard.res;
 
   const form = await req.formData();

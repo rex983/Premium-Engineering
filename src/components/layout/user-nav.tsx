@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { Check, Eye, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,15 +9,12 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { UserRole } from "@/types/auth";
+import type { KnownUserRole, UserRole } from "@/types/auth";
 
-const ROLE_LABEL: Record<UserRole, string> = {
+const ROLE_LABEL: Record<KnownUserRole, string> = {
   admin: "Admin",
   senior_manager: "Senior Manager",
   junior_manager: "Junior Manager",
@@ -29,20 +24,19 @@ const ROLE_LABEL: Record<UserRole, string> = {
   sales_rep: "Sales Rep",
   bst: "BST",
   rnd: "R&D",
-  viewer: "Viewer",
 };
 
-const VIEW_AS_ROLES: UserRole[] = ["admin", "senior_manager", "sales_rep", "viewer"];
-
-interface UserNavProps {
-  realRole: UserRole;
-  effectiveRole: UserRole;
+/** Custom launcher roles fall back to their raw name. */
+function roleLabel(role: UserRole): string {
+  return ROLE_LABEL[role as KnownUserRole] ?? (role || "No role");
 }
 
-export function UserNav({ realRole, effectiveRole }: UserNavProps) {
+interface UserNavProps {
+  role: UserRole;
+}
+
+export function UserNav({ role }: UserNavProps) {
   const { data: session } = useSession();
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
 
   if (!session?.user) return null;
 
@@ -52,19 +46,6 @@ export function UserNav({ realRole, effectiveRole }: UserNavProps) {
       .map((n) => n[0])
       .join("")
       .toUpperCase() || "U";
-
-  async function setViewAs(role: UserRole) {
-    setPending(true);
-    await fetch("/api/view-as", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
-    });
-    setPending(false);
-    router.refresh();
-  }
-
-  const canImpersonate = realRole === "admin";
 
   return (
     <DropdownMenu>
@@ -85,40 +66,10 @@ export function UserNav({ realRole, effectiveRole }: UserNavProps) {
               {session.user.email}
             </span>
             <span className="mt-1 text-xs font-normal text-muted-foreground">
-              Role: {ROLE_LABEL[realRole]}
-              {realRole !== effectiveRole && (
-                <> · viewing as {ROLE_LABEL[effectiveRole]}</>
-              )}
+              Role: {roleLabel(role)}
             </span>
           </div>
         </DropdownMenuLabel>
-        {canImpersonate && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Eye className="mr-2 h-4 w-4" />
-                View as
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {VIEW_AS_ROLES.map((r) => (
-                  <DropdownMenuItem
-                    key={r}
-                    disabled={pending}
-                    onClick={() => setViewAs(r)}
-                  >
-                    <Check
-                      className={`mr-2 h-4 w-4 ${
-                        effectiveRole === r ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                    {ROLE_LABEL[r]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </>
-        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
           <LogOut className="mr-2 h-4 w-4" />

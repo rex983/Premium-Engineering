@@ -15,7 +15,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin({ write: true });
   if (!guard.ok) return guard.res;
 
   const { id } = await params;
@@ -62,7 +62,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin({ write: true });
   if (!guard.ok) return guard.res;
 
   const { id } = await params;
