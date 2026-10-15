@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { Tracker } from "@/components/analytics-tracker";
 import { ViewAsBanner } from "@/components/layout/view-as-banner";
 import { getEffectiveIdentity } from "@/lib/view-as";
 
@@ -18,6 +19,7 @@ export default async function AppLayout({
 
   return (
     <SessionProvider>
+      <Tracker />
       <SidebarProvider>
         <AppSidebar effectiveRole={effectiveRole} realRole={realRole} />
         <SidebarInset>
